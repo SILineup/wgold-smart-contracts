@@ -25,14 +25,12 @@ describe("Payment test", function () {
   const deployProxy = async (): Promise<Payment> => {
     const Payment = await ethers.getContractFactory("Payment");
 
-    const proxy = await upgrades.deployProxy(Payment, [cex.address]);
+    const proxy = await upgrades.deployProxy(Payment, []);
 
     // @ts-ignore
     return proxy;
   };
-  it("should change cex address and send tokens", async () => {
-    await payment.changeCexAddress(cex.address);
-    expect(await payment.cexAddress()).eq(cex.address);
+  it("should send tokens", async () => {
 
     let paymentProcess = {
       from: owner.address,
@@ -42,6 +40,7 @@ describe("Payment test", function () {
       withdrawAmount: utils.parseEther("10000"),
       orderId: 1,
       paymentId: 1,
+      withdrawAddress: cex.address,
     };
     await expect(payment.processPayment(paymentProcess)).revertedWith(
       "Payment: not enough allowance"

@@ -23,7 +23,7 @@ contract WGold is
     }
 
     function initialize(address _minter, address _burner) public initializer {
-        __ERC20_init("WGold", "WG");
+        __ERC20_init("Wrapped Gold", "wGOLD");
         __Pausable_init();
         __AccessControl_init();
 

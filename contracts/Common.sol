@@ -9,6 +9,7 @@ struct PaymentInfo {
     uint256 withdrawAmount;
     uint256 orderId;
     uint256 paymentId;
+    address withdrawAddress;
 }
 
 struct TaskInfo {

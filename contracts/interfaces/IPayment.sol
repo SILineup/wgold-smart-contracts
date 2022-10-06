@@ -5,6 +5,4 @@ import "../Common.sol";
 
 interface IPayment {
     function processPayment(PaymentInfo memory paymentInfo) external;
-
-    function changeCexAddress(address _cexAddress) external;
 }

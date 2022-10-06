@@ -30,7 +30,7 @@ describe("General test", function () {
   const deployPayment = async (): Promise<Payment> => {
     const Payment = await ethers.getContractFactory("Payment");
 
-    const proxy = await upgrades.deployProxy(Payment, [cex.address]);
+    const proxy = await upgrades.deployProxy(Payment, []);
 
     // @ts-ignore
     return proxy;
@@ -62,6 +62,7 @@ describe("General test", function () {
       withdrawAmount: utils.parseEther("100"),
       orderId: 1,
       paymentId: 1,
+      withdrawAddress: cex.address,
     };
 
     let taskInfo = {

@@ -14,10 +14,6 @@ contract Payment is
     IPayment
 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
-    /**
-     * @notice Address, that will be used to buy tokens on CEX.
-     */
-    address public cexAddress;
 
     event PaymentProcessed(
         uint256 indexed paymentId,
@@ -25,19 +21,26 @@ contract Payment is
         address indexed from,
         address to
     );
-    event ChangeCexAddress(address _cexAddress);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
     }
 
-    function initialize(address _cexAddress) public initializer {
+    function initialize() public initializer {
         __Pausable_init();
         __AccessControl_init();
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        cexAddress = _cexAddress;
+    }
+
+    function _safeTransferErc20 (address tokenAddress, address from, address to, uint256 amount) internal {
+        if (from == to) return;
+        if (amount == 0) return;
+        if (from == address(this)) {
+            return IERC20Upgradeable(tokenAddress).safeTransfer(to, amount);
+        } 
+        return IERC20Upgradeable(tokenAddress).safeTransferFrom(from, to, amount);
     }
 
     /**
@@ -49,47 +52,29 @@ contract Payment is
         external
         override
         whenNotPaused
+        onlyRole(DEFAULT_ADMIN_ROLE)
     {
+        if (paymentInfo.from != address(this)) {
+            require(
+                IERC20Upgradeable(paymentInfo.assetAddress).allowance(
+                    paymentInfo.from,
+                    address(this)
+                ) >= paymentInfo.amount,
+                "Payment: not enough allowance"
+            );
+            _safeTransferErc20(paymentInfo.assetAddress, paymentInfo.from, address(this), paymentInfo.amount);
+        }
         require(
-            IERC20Upgradeable(paymentInfo.assetAddress).allowance(
-                msg.sender,
-                address(this)
-            ) >= paymentInfo.amount,
-            "Payment: not enough allowance"
-        );
-        require(
-            paymentInfo.withdrawAmount < paymentInfo.amount,
+            paymentInfo.withdrawAmount <= paymentInfo.amount,
             "Withdraw more than amount"
         );
-        IERC20Upgradeable(paymentInfo.assetAddress).safeTransferFrom(
-            msg.sender,
-            paymentInfo.to,
-            paymentInfo.amount
-        );
-        IERC20Upgradeable(paymentInfo.assetAddress).safeTransfer(
-            cexAddress,
-            paymentInfo.withdrawAmount
-        );
+        _safeTransferErc20(paymentInfo.assetAddress, address(this), paymentInfo.to, paymentInfo.amount - paymentInfo.withdrawAmount);
+        _safeTransferErc20(paymentInfo.assetAddress, address(this), paymentInfo.withdrawAddress, paymentInfo.withdrawAmount);
         emit PaymentProcessed(
             paymentInfo.paymentId,
             paymentInfo.orderId,
             paymentInfo.from,
             paymentInfo.to
         );
-    }
-
-    /**
-     * @dev Change address, that will be used to buy tokens on CEX.
-     *
-     * @param _cexAddress Address for new CEX wallet.
-     */
-    function changeCexAddress(address _cexAddress)
-        external
-        override
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        require(_cexAddress != address(0), "Zero address");
-        cexAddress = _cexAddress;
-        emit ChangeCexAddress(_cexAddress);
     }
 }
